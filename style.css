@@ -213,6 +213,8 @@ body {
   padding: 0 16px;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  min-height: 58px;
+  align-items: center;
 }
 .day-filter-strip::-webkit-scrollbar { display: none; }
 
@@ -700,7 +702,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 16px 8px;
+  padding: 16px 16px 4px;
+  background: var(--surface);
+  margin: 0 0 4px;
+  border-bottom: 1px solid var(--border);
 }
 
 .portfolio-summary { flex: 1; }

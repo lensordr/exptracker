@@ -867,8 +867,10 @@ document.getElementById('installBtn').addEventListener('click', async () => {
 
 /* ===== INIT ===== */
 loadData();
+loadStocks();
 updateYearSelect();
 renderAll();
+renderStocks();
 
 // Register service worker
 if ('serviceWorker' in navigator) {
@@ -1142,7 +1144,3 @@ document.getElementById('stockForm').addEventListener('submit', async function(e
 
 document.getElementById('addStockBtn').addEventListener('click', openAddStock);
 document.getElementById('refreshPricesBtn').addEventListener('click', () => refreshAllPrices(true));
-
-/* Load stocks on init */
-loadStocks();
-renderStocks();
