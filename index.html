@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="ExpenseTracker" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Expense Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logo">💰</span>
+        <span class="app-title">ExpenseTracker</span>
+      </div>
+      <div class="header-right">
+        <select id="yearSelect" class="year-select"></select>
+      </div>
+    </header>
+
+    <!-- Nav -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-tab="dashboard">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-btn" data-tab="expenses">
+        <span class="nav-icon">💸</span>
+        <span>Expenses</span>
+      </button>
+      <button class="nav-btn" data-tab="income">
+        <span class="nav-icon">💵</span>
+        <span>Income</span>
+      </button>
+      <button class="nav-btn" data-tab="yearly">
+        <span class="nav-icon">📅</span>
+        <span>Yearly</span>
+      </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+      <!-- DASHBOARD TAB -->
+      <section id="tab-dashboard" class="tab active">
+        <div class="month-selector">
+          <button id="prevMonth" class="month-btn">‹</button>
+          <h2 id="currentMonthLabel">January 2025</h2>
+          <button id="nextMonth" class="month-btn">›</button>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="cards-grid">
+          <div class="card card-income">
+            <div class="card-label">Total Income</div>
+            <div class="card-value" id="dash-income">€0.00</div>
+          </div>
+          <div class="card card-expense">
+            <div class="card-label">Total Expenses</div>
+            <div class="card-value" id="dash-expenses">€0.00</div>
+          </div>
+          <div class="card card-balance">
+            <div class="card-label">Balance</div>
+            <div class="card-value" id="dash-balance">€0.00</div>
+          </div>
+          <div class="card card-savings">
+            <div class="card-label">Savings Rate</div>
+            <div class="card-value" id="dash-savings">0%</div>
+          </div>
+        </div>
+
+        <!-- Donut Chart -->
+        <div class="chart-container">
+          <h3 class="section-title">Spending Breakdown</h3>
+          <div class="donut-wrapper">
+            <canvas id="donutChart" width="260" height="260"></canvas>
+            <div class="donut-center">
+              <div class="donut-total-label">Total</div>
+              <div class="donut-total-value" id="donut-total">€0</div>
+            </div>
+          </div>
+          <div id="donut-legend" class="donut-legend"></div>
+        </div>
+
+        <!-- Monthly Bar Chart -->
+        <div class="chart-container">
+          <h3 class="section-title">Monthly Overview</h3>
+          <canvas id="barChart" width="340" height="200"></canvas>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="chart-container">
+          <h3 class="section-title">Category Details</h3>
+          <div id="category-breakdown"></div>
+        </div>
+      </section>
+
+      <!-- EXPENSES TAB -->
+      <section id="tab-expenses" class="tab">
+        <div class="month-selector">
+          <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+          <h2 id="expMonthLabel">January 2025</h2>
+          <button class="month-btn" onclick="changeMonth(1)">›</button>
+        </div>
+
+        <button class="fab" id="addExpenseBtn">+ Add Expense</button>
+
+        <div id="expenses-list" class="transactions-list"></div>
+      </section>
+
+      <!-- INCOME TAB -->
+      <section id="tab-income" class="tab">
+        <div class="month-selector">
+          <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+          <h2 id="incMonthLabel">January 2025</h2>
+          <button class="month-btn" onclick="changeMonth(1)">›</button>
+        </div>
+
+        <button class="fab" id="addIncomeBtn">+ Add Income</button>
+
+        <div class="income-summary-box">
+          <div class="income-summary-row">
+            <span>Salary</span>
+            <span id="inc-salary">€0.00</span>
+          </div>
+          <div class="income-summary-row">
+            <span>Extra Income</span>
+            <span id="inc-extra">€0.00</span>
+          </div>
+          <div class="income-summary-row total-row">
+            <span>Total</span>
+            <span id="inc-total">€0.00</span>
+          </div>
+        </div>
+
+        <div id="income-list" class="transactions-list"></div>
+      </section>
+
+      <!-- YEARLY TAB -->
+      <section id="tab-yearly" class="tab">
+        <h2 class="section-title" style="padding: 16px 16px 0">Year <span id="yearly-year">2025</span> Overview</h2>
+
+        <div class="cards-grid" style="margin-top:12px">
+          <div class="card card-income">
+            <div class="card-label">Year Income</div>
+            <div class="card-value" id="year-income">€0.00</div>
+          </div>
+          <div class="card card-expense">
+            <div class="card-label">Year Expenses</div>
+            <div class="card-value" id="year-expenses">€0.00</div>
+          </div>
+          <div class="card card-balance">
+            <div class="card-label">Year Balance</div>
+            <div class="card-value" id="year-balance">€0.00</div>
+          </div>
+          <div class="card card-savings">
+            <div class="card-label">Avg Savings Rate</div>
+            <div class="card-value" id="year-savings">0%</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <h3 class="section-title">Income vs Expenses by Month</h3>
+          <canvas id="yearlyBarChart" width="340" height="220"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <h3 class="section-title">Monthly Breakdown</h3>
+          <div id="monthly-table"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ADD EXPENSE MODAL -->
+  <div id="expenseModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModal('expenseModal')"></div>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 id="expenseModalTitle">Add Expense</h3>
+        <button class="modal-close" onclick="closeModal('expenseModal')">✕</button>
+      </div>
+      <form id="expenseForm" class="modal-form">
+        <input type="hidden" id="expenseEditId" />
+        <div class="form-group">
+          <label>Category</label>
+          <select id="expCategory" required onchange="updateSubcategories()">
+            <option value="">Select category...</option>
+            <option value="Rent">🏠 Rent</option>
+            <option value="Investments">📈 Investments</option>
+            <option value="Apartment">🛋️ Apartment</option>
+            <option value="Food">🍔 Food</option>
+            <option value="Going Out">🎉 Going Out</option>
+            <option value="Loans">💳 Loans</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Subcategory</label>
+          <select id="expSubcategory" required>
+            <option value="">Select subcategory...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Amount (€)</label>
+          <input type="number" id="expAmount" placeholder="0.00" step="0.01" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="expDate" required />
+        </div>
+        <div class="form-group">
+          <label>Notes (optional)</label>
+          <input type="text" id="expNotes" placeholder="Add a note..." />
+        </div>
+        <button type="submit" class="btn-primary">Save Expense</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD INCOME MODAL -->
+  <div id="incomeModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModal('incomeModal')"></div>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 id="incomeModalTitle">Add Income</h3>
+        <button class="modal-close" onclick="closeModal('incomeModal')">✕</button>
+      </div>
+      <form id="incomeForm" class="modal-form">
+        <input type="hidden" id="incomeEditId" />
+        <div class="form-group">
+          <label>Type</label>
+          <select id="incType" required>
+            <option value="">Select type...</option>
+            <option value="Salary">💼 Salary</option>
+            <option value="Extra Income">⭐ Extra Income</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Source / Description</label>
+          <input type="text" id="incSource" placeholder="e.g. Monthly salary, Freelance..." required />
+        </div>
+        <div class="form-group">
+          <label>Amount (€)</label>
+          <input type="number" id="incAmount" placeholder="0.00" step="0.01" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="incDate" required />
+        </div>
+        <div class="form-group">
+          <label>Notes (optional)</label>
+          <input type="text" id="incNotes" placeholder="Add a note..." />
+        </div>
+        <button type="submit" class="btn-primary">Save Income</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- INSTALL BANNER -->
+  <div id="installBanner" class="install-banner hidden">
+    <span>📱 Add to Home Screen for the best experience!</span>
+    <button id="installBtn" class="install-btn">Install</button>
+    <button class="install-dismiss" onclick="document.getElementById('installBanner').classList.add('hidden')">✕</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
