@@ -2,7 +2,7 @@
   "name": "Expense Tracker",
   "short_name": "ExpenseTracker",
   "description": "Track your monthly expenses and income",
-  "start_url": "/",
+  "start_url": "/exptracker/",
   "display": "standalone",
   "background_color": "#f1f5f9",
   "theme_color": "#6366f1",

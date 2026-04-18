@@ -1,10 +1,12 @@
 const CACHE_NAME = 'expense-tracker-v1';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js',
-  '/manifest.json'
+  '/exptracker/',
+  '/exptracker/index.html',
+  '/exptracker/style.css',
+  '/exptracker/app.js',
+  '/exptracker/manifest.json',
+  '/exptracker/icons/icon-192.png',
+  '/exptracker/icons/icon-512.png'
 ];
 
 self.addEventListener('install', (e) => {
