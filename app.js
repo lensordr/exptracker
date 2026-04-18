@@ -180,9 +180,9 @@ function renderDashboard() {
   const budgetInfo = getDailyBudget(balance);
   if (budgetInfo) {
     const { daily, nextSalaryLabel } = budgetInfo;
-    const color = daily >= 0 ? 'var(--success)' : 'var(--danger)';
-    document.getElementById('dash-daily').textContent = fmt(Math.abs(daily)) + '/day';
-    document.getElementById('dash-daily').style.color = color;
+    const dailyEl = document.getElementById('dash-daily');
+    dailyEl.textContent = fmt(Math.abs(daily)) + '/day';
+    dailyEl.style.color = daily >= 0 ? 'var(--success)' : 'var(--danger)';
     document.getElementById('dash-daily-sub').textContent =
       daily < 0 ? `⚠️ Over budget · ${nextSalaryLabel}` : `✅ ${nextSalaryLabel}`;
     dailyCard.style.display = '';
