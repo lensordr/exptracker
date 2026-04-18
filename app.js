@@ -13,7 +13,7 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 let state = {
   currentYear: new Date().getFullYear(),
   currentMonth: new Date().getMonth(),
-  selectedDay: null,   // null = show full month, number = filter to that day
+  selectedDay: null,
   expenses: [],
   income: []
 };
@@ -120,11 +120,12 @@ function renderAll() {
   document.getElementById('incMonthLabel').textContent = label;
   document.getElementById('yearly-year').textContent = state.currentYear;
 
-  renderDayFilter();
   renderDashboard();
   renderExpensesList();
   renderIncomeList();
   renderYearly();
+  // Day filter after a tick so DOM is fully painted
+  setTimeout(renderDayFilter, 0);
 }
 
 /* ===== DAY FILTER ===== */
