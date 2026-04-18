@@ -1092,21 +1092,34 @@ const KNOWN_TICKERS = {
   'IWDA': { name: 'iShares Core MSCI World ETF', currency: 'USD' },
 };
 
-function onTickerInput() {
-  const ticker = document.getElementById('stockTicker').value.trim().toUpperCase();
-  const known = KNOWN_TICKERS[ticker];
-  if (known) {
-    const nameField = document.getElementById('stockName');
-    const currField = document.getElementById('stockCurrency');
-    if (!nameField.value) nameField.value = known.name;
-    currField.value = known.currency;
+function onTickerSelect() {
+  const val = document.getElementById('stockTicker').value;
+  const manualGroup = document.getElementById('stockTickerManualGroup');
+  if (val === 'OTHER') {
+    manualGroup.classList.remove('hidden');
+    document.getElementById('stockName').value = '';
+    document.getElementById('stockCurrency').value = 'EUR';
+    return;
   }
+  manualGroup.classList.add('hidden');
+  const known = KNOWN_TICKERS[val];
+  if (known) {
+    document.getElementById('stockName').value = known.name;
+    document.getElementById('stockCurrency').value = known.currency;
+  }
+}
+
+function getTickerValue() {
+  const sel = document.getElementById('stockTicker').value;
+  if (sel === 'OTHER') return document.getElementById('stockTickerManual').value.trim().toUpperCase();
+  return sel;
 }
 
 function openAddStock() {
   document.getElementById('stockEditId').value = '';
   document.getElementById('stockModalTitle').textContent = 'Add Holding';
   document.getElementById('stockForm').reset();
+  document.getElementById('stockTickerManualGroup').classList.add('hidden');
   openModal('stockModal');
 }
 
@@ -1115,7 +1128,17 @@ function editStock(id) {
   if (!h) return;
   document.getElementById('stockEditId').value = id;
   document.getElementById('stockModalTitle').textContent = 'Edit Holding';
-  document.getElementById('stockTicker').value = h.ticker;
+  // Try to match dropdown, else use OTHER
+  const sel = document.getElementById('stockTicker');
+  const opts = Array.from(sel.options).map(o => o.value);
+  if (opts.includes(h.ticker)) {
+    sel.value = h.ticker;
+    document.getElementById('stockTickerManualGroup').classList.add('hidden');
+  } else {
+    sel.value = 'OTHER';
+    document.getElementById('stockTickerManualGroup').classList.remove('hidden');
+    document.getElementById('stockTickerManual').value = h.ticker;
+  }
   document.getElementById('stockName').value = h.name || '';
   document.getElementById('stockShares').value = h.shares;
   document.getElementById('stockBuyPrice').value = h.buyPrice;
@@ -1133,7 +1156,7 @@ function deleteStock(id) {
 document.getElementById('stockForm').addEventListener('submit', async function(ev) {
   ev.preventDefault();
   const id = document.getElementById('stockEditId').value;
-  const ticker = document.getElementById('stockTicker').value.trim().toUpperCase();
+  const ticker = getTickerValue();
   const entry = {
     id: id || uid(),
     ticker,

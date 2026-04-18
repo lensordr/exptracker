@@ -327,10 +327,28 @@
       <form id="stockForm" class="modal-form">
         <input type="hidden" id="stockEditId" />
         <div class="form-group">
+          <label>Stock / ETF</label>
+          <select id="stockTicker" required onchange="onTickerSelect()">
+            <option value="">Select a holding...</option>
+            <option value="VUAA.MI">VUAA — Vanguard S&P 500 ETF (Milan)</option>
+            <option value="LLY">LLY — Eli Lilly and Company</option>
+            <option value="AAPL">AAPL — Apple Inc.</option>
+            <option value="MSFT">MSFT — Microsoft Corporation</option>
+            <option value="NVDA">NVDA — NVIDIA Corporation</option>
+            <option value="GOOGL">GOOGL — Alphabet Inc.</option>
+            <option value="AMZN">AMZN — Amazon.com Inc.</option>
+            <option value="TSLA">TSLA — Tesla Inc.</option>
+            <option value="META">META — Meta Platforms Inc.</option>
+            <option value="VWCE.DE">VWCE — Vanguard FTSE All-World ETF</option>
+            <option value="CSPX">CSPX — iShares Core S&P 500 ETF</option>
+            <option value="IWDA">IWDA — iShares Core MSCI World ETF</option>
+            <option value="OTHER">Other (type manually)...</option>
+          </select>
+        </div>
+        <div class="form-group hidden" id="stockTickerManualGroup">
           <label>Ticker Symbol</label>
-          <input type="text" id="stockTicker" placeholder="e.g. VUAA, LLY, AAPL" required
-            style="text-transform:uppercase" oninput="onTickerInput()" />
-          <span class="form-hint">Type ticker and name fills automatically. For VUAA use: VUAA.MI (Milan) or VUAA.L (London)</span>
+          <input type="text" id="stockTickerManual" placeholder="e.g. BRK-B, VOO..." style="text-transform:uppercase" />
+          <span class="form-hint">Use Yahoo Finance ticker. For EU ETFs: VUAA.MI, VWCE.DE</span>
         </div>
         <div class="form-group">
           <label>Name (optional)</label>
