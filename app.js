@@ -1068,6 +1068,41 @@ function renderStocks() {
 }
 
 /* Add / Edit stock */
+/* Known tickers — auto-fill name */
+const KNOWN_TICKERS = {
+  'VUAA': { name: 'Vanguard S&P 500 ETF', currency: 'EUR' },
+  'VUAA.MI': { name: 'Vanguard S&P 500 ETF (Milan)', currency: 'EUR' },
+  'VUAA.L': { name: 'Vanguard S&P 500 ETF (London)', currency: 'USD' },
+  'VUAA.AS': { name: 'Vanguard S&P 500 ETF (Amsterdam)', currency: 'EUR' },
+  'LLY': { name: 'Eli Lilly and Company', currency: 'USD' },
+  'AAPL': { name: 'Apple Inc.', currency: 'USD' },
+  'MSFT': { name: 'Microsoft Corporation', currency: 'USD' },
+  'GOOGL': { name: 'Alphabet Inc.', currency: 'USD' },
+  'AMZN': { name: 'Amazon.com Inc.', currency: 'USD' },
+  'TSLA': { name: 'Tesla Inc.', currency: 'USD' },
+  'NVDA': { name: 'NVIDIA Corporation', currency: 'USD' },
+  'META': { name: 'Meta Platforms Inc.', currency: 'USD' },
+  'BRK-B': { name: 'Berkshire Hathaway B', currency: 'USD' },
+  'VOO': { name: 'Vanguard S&P 500 ETF (US)', currency: 'USD' },
+  'SPY': { name: 'SPDR S&P 500 ETF', currency: 'USD' },
+  'QQQ': { name: 'Invesco QQQ Trust', currency: 'USD' },
+  'VWCE': { name: 'Vanguard FTSE All-World ETF', currency: 'EUR' },
+  'VWCE.DE': { name: 'Vanguard FTSE All-World ETF (Xetra)', currency: 'EUR' },
+  'CSPX': { name: 'iShares Core S&P 500 ETF', currency: 'USD' },
+  'IWDA': { name: 'iShares Core MSCI World ETF', currency: 'USD' },
+};
+
+function onTickerInput() {
+  const ticker = document.getElementById('stockTicker').value.trim().toUpperCase();
+  const known = KNOWN_TICKERS[ticker];
+  if (known) {
+    const nameField = document.getElementById('stockName');
+    const currField = document.getElementById('stockCurrency');
+    if (!nameField.value) nameField.value = known.name;
+    currField.value = known.currency;
+  }
+}
+
 function openAddStock() {
   document.getElementById('stockEditId').value = '';
   document.getElementById('stockModalTitle').textContent = 'Add Holding';

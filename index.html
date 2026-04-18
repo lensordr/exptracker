@@ -329,8 +329,8 @@
         <div class="form-group">
           <label>Ticker Symbol</label>
           <input type="text" id="stockTicker" placeholder="e.g. VUAA, LLY, AAPL" required
-            style="text-transform:uppercase" />
-          <span class="form-hint">Use the exact ticker from Yahoo Finance. For EU ETFs add exchange: VUAA.L or VUAA.AS</span>
+            style="text-transform:uppercase" oninput="onTickerInput()" />
+          <span class="form-hint">Type ticker and name fills automatically. For VUAA use: VUAA.MI (Milan) or VUAA.L (London)</span>
         </div>
         <div class="form-group">
           <label>Name (optional)</label>
