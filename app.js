@@ -13,6 +13,7 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 let state = {
   currentYear: new Date().getFullYear(),
   currentMonth: new Date().getMonth(),
+  selectedDay: null,   // null = show full month, number = filter to that day
   expenses: [],
   income: []
 };
@@ -90,6 +91,7 @@ function changeMonth(delta) {
   state.currentMonth += delta;
   if (state.currentMonth > 11) { state.currentMonth = 0; state.currentYear++; }
   if (state.currentMonth < 0) { state.currentMonth = 11; state.currentYear--; }
+  state.selectedDay = null;
   updateYearSelect();
   renderAll();
 }
@@ -118,10 +120,72 @@ function renderAll() {
   document.getElementById('incMonthLabel').textContent = label;
   document.getElementById('yearly-year').textContent = state.currentYear;
 
+  renderDayFilter();
   renderDashboard();
   renderExpensesList();
   renderIncomeList();
   renderYearly();
+}
+
+/* ===== DAY FILTER ===== */
+function renderDayFilter() {
+  const strip = document.getElementById('dayFilterStrip');
+  if (!strip) return;
+
+  const daysInMonth = new Date(state.currentYear, state.currentMonth + 1, 0).getDate();
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === state.currentYear && today.getMonth() === state.currentMonth;
+  const DAY_NAMES = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+  // Find which days have data
+  const daysWithData = new Set();
+  state.expenses.forEach(e => {
+    const d = new Date(e.date);
+    if (d.getFullYear() === state.currentYear && d.getMonth() === state.currentMonth)
+      daysWithData.add(d.getDate());
+  });
+  state.income.forEach(i => {
+    const d = new Date(i.date);
+    if (d.getFullYear() === state.currentYear && d.getMonth() === state.currentMonth)
+      daysWithData.add(d.getDate());
+  });
+
+  strip.innerHTML = '';
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(state.currentYear, state.currentMonth, day);
+    const dayName = DAY_NAMES[date.getDay()];
+    const isToday = isCurrentMonth && today.getDate() === day;
+    const isActive = state.selectedDay === day;
+    const hasData = daysWithData.has(day);
+
+    const btn = document.createElement('button');
+    btn.className = 'day-pill' +
+      (isToday ? ' today' : '') +
+      (isActive ? ' active' : '') +
+      (hasData ? ' has-data' : '');
+    btn.innerHTML = `<span class="day-pill-num">${day}</span><span class="day-pill-name">${dayName}</span>`;
+    btn.addEventListener('click', () => toggleDayFilter(day));
+    strip.appendChild(btn);
+  }
+
+  // Scroll to today or selected day
+  const scrollTo = state.selectedDay || (isCurrentMonth ? today.getDate() : 1);
+  const targetBtn = strip.children[scrollTo - 1];
+  if (targetBtn) {
+    setTimeout(() => targetBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 50);
+  }
+}
+
+function toggleDayFilter(day) {
+  state.selectedDay = state.selectedDay === day ? null : day;
+  renderDayFilter();
+  renderDashboard();
+}
+
+function clearDayFilter() {
+  state.selectedDay = null;
+  renderDayFilter();
+  renderDashboard();
 }
 
 /* ===== DAILY BUDGET CALC ===== */
@@ -159,30 +223,62 @@ function getDailyBudget(balance) {
 
 /* ===== DASHBOARD ===== */
 function renderDashboard() {
-  const expenses = getMonthExpenses(state.currentYear, state.currentMonth);
-  const incomes = getMonthIncome(state.currentYear, state.currentMonth);
+  const allExpenses = getMonthExpenses(state.currentYear, state.currentMonth);
+  const allIncomes  = getMonthIncome(state.currentYear, state.currentMonth);
 
-  const totalIncome = sumAmount(incomes);
+  // Apply day filter if active
+  const filtered = state.selectedDay !== null;
+  const expenses = filtered
+    ? allExpenses.filter(e => new Date(e.date).getDate() === state.selectedDay)
+    : allExpenses;
+  const incomes = filtered
+    ? allIncomes.filter(i => new Date(i.date).getDate() === state.selectedDay)
+    : allIncomes;
+
+  // Day filter label
+  const labelEl  = document.getElementById('day-filter-label');
+  const textEl   = document.getElementById('day-filter-text');
+  const barWrap  = document.getElementById('bar-chart-container');
+  const dayTxWrap = document.getElementById('day-transactions-container');
+
+  if (filtered) {
+    const d = new Date(state.currentYear, state.currentMonth, state.selectedDay);
+    const dateStr = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    textEl.textContent = dateStr;
+    labelEl.classList.remove('hidden');
+    barWrap.classList.add('hidden');
+    dayTxWrap.classList.remove('hidden');
+    document.getElementById('breakdown-title').textContent = 'Spending Breakdown — ' + d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    renderDayTransactions(expenses, incomes);
+  } else {
+    labelEl.classList.add('hidden');
+    barWrap.classList.remove('hidden');
+    dayTxWrap.classList.add('hidden');
+    document.getElementById('breakdown-title').textContent = 'Spending Breakdown';
+  }
+
+  const totalIncome   = sumAmount(incomes);
   const totalExpenses = sumAmount(expenses);
-  const balance = totalIncome - totalExpenses;
-  const savingsRate = totalIncome > 0 ? ((balance / totalIncome) * 100) : 0;
+  const balance       = totalIncome - totalExpenses;
+  const savingsRate   = totalIncome > 0 ? ((balance / totalIncome) * 100) : 0;
 
-  document.getElementById('dash-income').textContent = fmt(totalIncome);
+  document.getElementById('dash-income').textContent   = fmt(totalIncome);
   document.getElementById('dash-expenses').textContent = fmt(totalExpenses);
-  document.getElementById('dash-balance').textContent = fmt(balance);
-  document.getElementById('dash-savings').textContent = savingsRate.toFixed(1) + '%';
+  document.getElementById('dash-balance').textContent  = fmt(balance);
+  document.getElementById('dash-savings').textContent  = savingsRate.toFixed(1) + '%';
 
   const balEl = document.getElementById('dash-balance');
   balEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
 
-  // Daily budget card
-  const dailyCard = document.getElementById('dash-daily-card');
-  const budgetInfo = getDailyBudget(balance);
-  if (budgetInfo) {
+  // --- Card 5: Daily Budget (always based on full month, not filtered day) ---
+  const fullBalance = sumAmount(allIncomes) - sumAmount(allExpenses);
+  const dailyCard   = document.getElementById('dash-daily-card');
+  const budgetInfo  = getDailyBudget(fullBalance);
+  if (budgetInfo && !filtered) {
     const { daily, nextSalaryLabel } = budgetInfo;
     const dailyEl = document.getElementById('dash-daily');
-    dailyEl.textContent = fmt(Math.abs(daily)) + '/day';
-    dailyEl.style.color = daily >= 0 ? 'var(--success)' : 'var(--danger)';
+    dailyEl.textContent  = fmt(Math.abs(daily)) + '/day';
+    dailyEl.style.color  = daily >= 0 ? 'var(--success)' : 'var(--danger)';
     document.getElementById('dash-daily-sub').textContent =
       daily < 0 ? `⚠️ Over budget · ${nextSalaryLabel}` : `✅ ${nextSalaryLabel}`;
     dailyCard.style.display = '';
@@ -190,9 +286,82 @@ function renderDashboard() {
     dailyCard.style.display = 'none';
   }
 
+  // --- Card 6: Left Today (daily budget - today's spending, non-cumulative) ---
+  const todayCard = document.getElementById('dash-today-card');
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === state.currentYear && today.getMonth() === state.currentMonth;
+
+  if (isCurrentMonth && budgetInfo && !filtered) {
+    const { daily } = budgetInfo;
+    const todayStr = today.toISOString().split('T')[0];
+    const spentToday = allExpenses
+      .filter(e => e.date === todayStr)
+      .reduce((s, e) => s + Number(e.amount), 0);
+    const leftToday = daily - spentToday;
+
+    const todayEl = document.getElementById('dash-today');
+    todayEl.textContent = fmt(Math.abs(leftToday));
+    todayEl.style.color = leftToday >= 0 ? '#f97316' : 'var(--danger)';
+    document.getElementById('dash-today-sub').textContent =
+      leftToday < 0
+        ? `⚠️ €${spentToday.toFixed(2)} spent · €${Math.abs(leftToday).toFixed(2)} over`
+        : `€${spentToday.toFixed(2)} spent today`;
+    todayCard.style.display = '';
+  } else {
+    todayCard.style.display = 'none';
+  }
+
   renderDonutChart(expenses);
-  renderBarChart();
+  if (!filtered) renderBarChart();
   renderCategoryBreakdown(expenses);
+}
+
+/* ===== DAY TRANSACTIONS LIST ===== */
+function renderDayTransactions(expenses, incomes) {
+  const container = document.getElementById('day-transactions-list');
+  const title = document.getElementById('day-transactions-title');
+
+  const allItems = [
+    ...expenses.map(e => ({ ...e, _type: 'expense' })),
+    ...incomes.map(i => ({ ...i, _type: 'income' }))
+  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  title.textContent = `Transactions (${allItems.length})`;
+
+  if (!allItems.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🗓️</div><p>No transactions on this day.</p></div>';
+    return;
+  }
+
+  container.innerHTML = allItems.map(item => {
+    if (item._type === 'expense') {
+      const cat = CATEGORIES[item.category] || { icon: '❓', color: '#94a3b8' };
+      return `
+        <div class="transaction-item">
+          <div class="transaction-icon" style="background:${cat.color}22"><span>${cat.icon}</span></div>
+          <div class="transaction-info">
+            <div class="transaction-category">${item.category}</div>
+            <div class="transaction-sub">${item.subcategory}${item.notes ? ' · ' + item.notes : ''}</div>
+          </div>
+          <div class="transaction-right">
+            <div class="transaction-amount">-${fmt(item.amount)}</div>
+          </div>
+        </div>`;
+    } else {
+      const icon = item.type === 'Salary' ? '💼' : '⭐';
+      return `
+        <div class="transaction-item">
+          <div class="transaction-icon" style="background:#d1fae5"><span>${icon}</span></div>
+          <div class="transaction-info">
+            <div class="transaction-category">${item.type}</div>
+            <div class="transaction-sub">${item.source}${item.notes ? ' · ' + item.notes : ''}</div>
+          </div>
+          <div class="transaction-right">
+            <div class="transaction-amount income">+${fmt(item.amount)}</div>
+          </div>
+        </div>`;
+    }
+  }).join('');
 }
 
 /* ===== DONUT CHART ===== */
@@ -653,6 +822,16 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'yearly') renderYearly();
     if (btn.dataset.tab === 'dashboard') renderDashboard();
+    if (btn.dataset.tab === 'stocks') {
+      renderStocks();
+      // Auto-refresh if no prices or last fetch was >10 min ago
+      const now = Date.now();
+      const stale = !stocksState.lastFetch || (now - stocksState.lastFetch) > 10 * 60 * 1000;
+      if (stale && stocksState.holdings.length) {
+        stocksState.lastFetch = now;
+        refreshAllPrices(true);
+      }
+    }
   });
 });
 
@@ -695,3 +874,275 @@ renderAll();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+/* ===== STOCKS ===== */
+let stocksState = {
+  holdings: [],
+  prices: {},      // { ticker: { price, change, changePct, currency, updatedAt } }
+  lastFetch: null
+};
+
+function saveStocks() {
+  localStorage.setItem('et_stocks', JSON.stringify(stocksState.holdings));
+  localStorage.setItem('et_stock_prices', JSON.stringify(stocksState.prices));
+}
+
+function loadStocks() {
+  try {
+    stocksState.holdings = JSON.parse(localStorage.getItem('et_stocks') || '[]');
+    stocksState.prices   = JSON.parse(localStorage.getItem('et_stock_prices') || '{}');
+  } catch(e) {
+    stocksState.holdings = [];
+    stocksState.prices = {};
+  }
+}
+
+/* Fetch price via Yahoo Finance through a CORS proxy */
+async function fetchPrice(ticker) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+  try {
+    const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
+    const json = await res.json();
+    const data = JSON.parse(json.contents);
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta) return null;
+    const price = meta.regularMarketPrice;
+    const prev  = meta.chartPreviousClose || meta.previousClose || price;
+    const change = price - prev;
+    const changePct = prev ? (change / prev) * 100 : 0;
+    return {
+      price,
+      change,
+      changePct,
+      currency: meta.currency || 'USD',
+      updatedAt: new Date().toISOString()
+    };
+  } catch(e) {
+    return null;
+  }
+}
+
+async function refreshAllPrices(showSpinner = true) {
+  if (!stocksState.holdings.length) return;
+
+  const btn = document.getElementById('refreshPricesBtn');
+  const note = document.getElementById('stocks-price-note');
+
+  if (showSpinner && btn) btn.classList.add('spinning');
+  if (note) note.textContent = 'Fetching live prices...';
+
+  const tickers = [...new Set(stocksState.holdings.map(h => h.ticker.toUpperCase()))];
+
+  await Promise.all(tickers.map(async ticker => {
+    const result = await fetchPrice(ticker);
+    if (result) stocksState.prices[ticker] = result;
+  }));
+
+  saveStocks();
+  if (showSpinner && btn) btn.classList.remove('spinning');
+
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (note) note.textContent = `Prices updated at ${timeStr} · Delayed ~15 min`;
+
+  renderStocks();
+}
+
+/* EUR/USD conversion — rough static rate, good enough for display */
+const FX = { USD: 0.92, GBP: 1.17, EUR: 1 };
+
+function toEur(amount, currency) {
+  return amount * (FX[currency] || 1);
+}
+
+function fmtStock(n, currency) {
+  const sym = currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+  return sym + Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function renderStocks() {
+  const list = document.getElementById('stocks-list');
+  if (!list) return;
+
+  if (!stocksState.holdings.length) {
+    list.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📈</div>
+      <p>No holdings yet.<br>Tap + Add Holding to get started.</p>
+    </div>`;
+    document.getElementById('portfolio-total').textContent = '€0.00';
+    document.getElementById('portfolio-gain').textContent = '+€0.00 (0.00%)';
+    return;
+  }
+
+  let totalValue = 0, totalCost = 0;
+
+  const cards = stocksState.holdings.map(h => {
+    const ticker = h.ticker.toUpperCase();
+    const priceData = stocksState.prices[ticker];
+    const shares = Number(h.shares);
+    const buyPrice = Number(h.buyPrice);
+    const currency = h.currency || 'EUR';
+
+    const costBasis = toEur(shares * buyPrice, currency);
+    totalCost += costBasis;
+
+    if (!priceData) {
+      // No price yet — show loading
+      return `
+        <div class="stock-card">
+          <div class="stock-top">
+            <div class="stock-left">
+              <div class="stock-ticker">${ticker}</div>
+              <div class="stock-name">${h.name || ''}</div>
+            </div>
+            <div class="stock-loading">
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
+              <div class="loading-dot"></div>
+              <span>Loading price...</span>
+            </div>
+          </div>
+          <div class="stock-bottom">
+            <div class="stock-stat"><span class="stock-stat-label">Shares</span><span class="stock-stat-value">${shares}</span></div>
+            <div class="stock-stat"><span class="stock-stat-label">Avg Buy</span><span class="stock-stat-value">${fmtStock(buyPrice, currency)}</span></div>
+            <div class="stock-stat"><span class="stock-stat-label">Cost</span><span class="stock-stat-value">€${costBasis.toFixed(2)}</span></div>
+          </div>
+          <div class="stock-actions">
+            <button class="btn-edit" onclick="editStock('${h.id}')">✏️ Edit</button>
+            <button class="btn-delete" onclick="deleteStock('${h.id}')">🗑️ Delete</button>
+          </div>
+        </div>`;
+    }
+
+    const currentPrice = priceData.price;
+    const currentValue = toEur(shares * currentPrice, priceData.currency);
+    const gain = currentValue - costBasis;
+    const gainPct = costBasis ? (gain / costBasis) * 100 : 0;
+    const isPositive = gain >= 0;
+    const dayChange = priceData.change;
+    const dayChangePct = priceData.changePct;
+
+    totalValue += currentValue;
+
+    return `
+      <div class="stock-card ${isPositive ? '' : 'negative'}">
+        <div class="stock-top">
+          <div class="stock-left">
+            <div class="stock-ticker">${ticker}</div>
+            <div class="stock-name">${h.name || priceData.currency}</div>
+          </div>
+          <div class="stock-right">
+            <div class="stock-current-price">${fmtStock(currentPrice, priceData.currency)}</div>
+            <div class="stock-price-change ${dayChange < 0 ? 'negative' : ''}">
+              ${dayChange >= 0 ? '+' : ''}${fmtStock(dayChange, priceData.currency)} (${dayChangePct >= 0 ? '+' : ''}${dayChangePct.toFixed(2)}%) today
+            </div>
+          </div>
+        </div>
+        <div class="stock-bottom">
+          <div class="stock-stat">
+            <span class="stock-stat-label">Shares</span>
+            <span class="stock-stat-value">${shares}</span>
+          </div>
+          <div class="stock-stat">
+            <span class="stock-stat-label">Value</span>
+            <span class="stock-stat-value">€${currentValue.toFixed(2)}</span>
+          </div>
+          <div class="stock-stat">
+            <span class="stock-stat-label">Gain/Loss</span>
+            <span class="stock-stat-value stock-gain-value ${isPositive ? '' : 'negative'}">
+              ${isPositive ? '+' : '-'}€${Math.abs(gain).toFixed(2)}<br>
+              <span style="font-size:11px">${isPositive ? '+' : ''}${gainPct.toFixed(2)}%</span>
+            </span>
+          </div>
+        </div>
+        <div class="stock-actions">
+          <button class="btn-edit" onclick="editStock('${h.id}')">✏️ Edit</button>
+          <button class="btn-delete" onclick="deleteStock('${h.id}')">🗑️ Delete</button>
+        </div>
+      </div>`;
+  });
+
+  list.innerHTML = cards.join('');
+
+  // Portfolio totals
+  const totalGain = totalValue - totalCost;
+  const totalGainPct = totalCost ? (totalGain / totalCost) * 100 : 0;
+  const isPos = totalGain >= 0;
+
+  document.getElementById('portfolio-total').textContent = '€' + totalValue.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const gainEl = document.getElementById('portfolio-gain');
+  gainEl.textContent = `${isPos ? '+' : '-'}€${Math.abs(totalGain).toFixed(2)} (${isPos ? '+' : ''}${totalGainPct.toFixed(2)}%) total return`;
+  gainEl.className = 'portfolio-gain' + (isPos ? '' : ' negative');
+}
+
+/* Add / Edit stock */
+function openAddStock() {
+  document.getElementById('stockEditId').value = '';
+  document.getElementById('stockModalTitle').textContent = 'Add Holding';
+  document.getElementById('stockForm').reset();
+  openModal('stockModal');
+}
+
+function editStock(id) {
+  const h = stocksState.holdings.find(x => x.id === id);
+  if (!h) return;
+  document.getElementById('stockEditId').value = id;
+  document.getElementById('stockModalTitle').textContent = 'Edit Holding';
+  document.getElementById('stockTicker').value = h.ticker;
+  document.getElementById('stockName').value = h.name || '';
+  document.getElementById('stockShares').value = h.shares;
+  document.getElementById('stockBuyPrice').value = h.buyPrice;
+  document.getElementById('stockCurrency').value = h.currency || 'EUR';
+  openModal('stockModal');
+}
+
+function deleteStock(id) {
+  if (!confirm('Delete this holding?')) return;
+  stocksState.holdings = stocksState.holdings.filter(h => h.id !== id);
+  saveStocks();
+  renderStocks();
+}
+
+document.getElementById('stockForm').addEventListener('submit', async function(ev) {
+  ev.preventDefault();
+  const id = document.getElementById('stockEditId').value;
+  const ticker = document.getElementById('stockTicker').value.trim().toUpperCase();
+  const entry = {
+    id: id || uid(),
+    ticker,
+    name: document.getElementById('stockName').value.trim(),
+    shares: parseFloat(document.getElementById('stockShares').value),
+    buyPrice: parseFloat(document.getElementById('stockBuyPrice').value),
+    currency: document.getElementById('stockCurrency').value
+  };
+  if (id) {
+    const idx = stocksState.holdings.findIndex(h => h.id === id);
+    if (idx !== -1) stocksState.holdings[idx] = entry;
+  } else {
+    stocksState.holdings.push(entry);
+  }
+  saveStocks();
+  closeModal('stockModal');
+  renderStocks();
+  // Fetch price for the new/updated ticker
+  const note = document.getElementById('stocks-price-note');
+  if (note) note.textContent = `Fetching price for ${ticker}...`;
+  const result = await fetchPrice(ticker);
+  if (result) {
+    stocksState.prices[ticker] = result;
+    saveStocks();
+    const now = new Date();
+    note.textContent = `Prices updated at ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Delayed ~15 min`;
+  } else {
+    if (note) note.textContent = `Could not fetch price for ${ticker}. Check the ticker symbol.`;
+  }
+  renderStocks();
+});
+
+document.getElementById('addStockBtn').addEventListener('click', openAddStock);
+document.getElementById('refreshPricesBtn').addEventListener('click', () => refreshAllPrices(true));
+
+/* Load stocks on init */
+loadStocks();
+renderStocks();

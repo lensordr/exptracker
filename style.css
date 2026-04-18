@@ -190,11 +190,104 @@ body {
 .card-balance .card-value { color: var(--primary); }
 .card-daily { border-left-color: #0ea5e9; grid-column: span 2; }
 .card-daily .card-value { color: #0ea5e9; }
+.card-today { border-left-color: #f97316; grid-column: span 2; }
+.card-today .card-value { color: #f97316; }
 .card-sub {
   font-size: 11px;
   color: var(--text-muted);
   margin-top: 4px;
   font-weight: 500;
+}
+
+/* ===== DAY FILTER ===== */
+.day-filter-wrap {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+}
+
+.day-filter-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 16px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.day-filter-strip::-webkit-scrollbar { display: none; }
+
+.day-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 40px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  border: none;
+  background: var(--bg);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.day-pill-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.day-pill-name {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.day-pill.has-data::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.day-pill.today .day-pill-num { color: var(--primary); }
+.day-pill.today .day-pill-name { color: var(--primary); }
+
+.day-pill.active {
+  background: var(--primary);
+}
+.day-pill.active .day-pill-num { color: white; }
+.day-pill.active .day-pill-name { color: rgba(255,255,255,0.8); }
+.day-pill.active::after { background: white; }
+
+.day-filter-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--primary-light);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.day-filter-label.hidden { display: none; }
+
+.day-filter-clear {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: white;
 }
 
 /* ===== CHART CONTAINERS ===== */
@@ -601,6 +694,195 @@ body {
 .month-row .col-balance { font-weight: 700; }
 .month-row .col-balance.positive { color: var(--success); }
 .month-row .col-balance.negative { color: var(--danger); }
+
+/* ===== STOCKS TAB ===== */
+.stocks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 8px;
+}
+
+.portfolio-summary { flex: 1; }
+
+.portfolio-total-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.portfolio-total-value {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -1px;
+  line-height: 1.1;
+}
+
+.portfolio-gain {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 4px;
+  color: var(--success);
+}
+.portfolio-gain.negative { color: var(--danger); }
+
+.refresh-btn {
+  background: var(--primary-light);
+  border: none;
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.refresh-btn:hover { background: var(--primary); }
+.refresh-btn.spinning { animation: spin 1s linear infinite; }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.stocks-price-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 0 16px 4px;
+  min-height: 16px;
+}
+
+.stocks-list {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stock-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.stock-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--success);
+  border-radius: 4px 0 0 4px;
+}
+.stock-card.negative::before { background: var(--danger); }
+
+.stock-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.stock-left { flex: 1; }
+
+.stock-ticker {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.stock-name {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.stock-right { text-align: right; }
+
+.stock-current-price {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.stock-price-change {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--success);
+}
+.stock-price-change.negative { color: var(--danger); }
+
+.stock-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.stock-stat { display: flex; flex-direction: column; gap: 2px; }
+
+.stock-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+}
+
+.stock-stat-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.stock-gain-value { color: var(--success); }
+.stock-gain-value.negative { color: var(--danger); }
+
+.stock-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.stock-loading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
+.loading-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pulse {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+.form-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
 
 /* ===== INSTALL BANNER ===== */
 .install-banner {

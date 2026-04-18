@@ -39,6 +39,10 @@
         <span class="nav-icon">💵</span>
         <span>Income</span>
       </button>
+      <button class="nav-btn" data-tab="stocks">
+        <span class="nav-icon">📈</span>
+        <span>Stocks</span>
+      </button>
       <button class="nav-btn" data-tab="yearly">
         <span class="nav-icon">📅</span>
         <span>Yearly</span>
@@ -54,6 +58,15 @@
           <button id="prevMonth" class="month-btn">‹</button>
           <h2 id="currentMonthLabel">January 2025</h2>
           <button id="nextMonth" class="month-btn">›</button>
+        </div>
+
+        <!-- Day Filter Strip -->
+        <div class="day-filter-wrap">
+          <div class="day-filter-strip" id="dayFilterStrip"></div>
+        </div>
+        <div id="day-filter-label" class="day-filter-label hidden">
+          <span id="day-filter-text"></span>
+          <button onclick="clearDayFilter()" class="day-filter-clear">✕ Show all</button>
         </div>
 
         <!-- Summary Cards -->
@@ -79,11 +92,16 @@
             <div class="card-value" id="dash-daily">€0/day</div>
             <div class="card-sub" id="dash-daily-sub"></div>
           </div>
+          <div class="card card-today" id="dash-today-card">
+            <div class="card-label">Left Today</div>
+            <div class="card-value" id="dash-today">€0.00</div>
+            <div class="card-sub" id="dash-today-sub"></div>
+          </div>
         </div>
 
         <!-- Donut Chart -->
         <div class="chart-container">
-          <h3 class="section-title">Spending Breakdown</h3>
+          <h3 class="section-title" id="breakdown-title">Spending Breakdown</h3>
           <div class="donut-wrapper">
             <canvas id="donutChart" width="260" height="260"></canvas>
             <div class="donut-center">
@@ -95,7 +113,7 @@
         </div>
 
         <!-- Monthly Bar Chart -->
-        <div class="chart-container">
+        <div class="chart-container" id="bar-chart-container">
           <h3 class="section-title">Monthly Overview</h3>
           <canvas id="barChart" width="340" height="200"></canvas>
         </div>
@@ -104,6 +122,12 @@
         <div class="chart-container">
           <h3 class="section-title">Category Details</h3>
           <div id="category-breakdown"></div>
+        </div>
+
+        <!-- Day Transactions (shown when day filter active) -->
+        <div class="chart-container hidden" id="day-transactions-container">
+          <h3 class="section-title" id="day-transactions-title">Transactions</h3>
+          <div id="day-transactions-list" class="transactions-list" style="padding:0"></div>
         </div>
       </section>
 
@@ -180,6 +204,29 @@
           <h3 class="section-title">Monthly Breakdown</h3>
           <div id="monthly-table"></div>
         </div>
+      </section>
+
+      <!-- STOCKS TAB -->
+      <section id="tab-stocks" class="tab">
+
+        <!-- Portfolio Summary -->
+        <div class="stocks-header">
+          <div class="portfolio-summary">
+            <div class="portfolio-total-label">Portfolio Value</div>
+            <div class="portfolio-total-value" id="portfolio-total">€0.00</div>
+            <div class="portfolio-gain" id="portfolio-gain">+€0.00 (0.00%)</div>
+          </div>
+          <button class="refresh-btn" id="refreshPricesBtn" title="Refresh prices">
+            <span id="refresh-icon">🔄</span>
+          </button>
+        </div>
+
+        <div class="stocks-price-note" id="stocks-price-note"></div>
+
+        <button class="fab" id="addStockBtn">+ Add Holding</button>
+
+        <div id="stocks-list" class="stocks-list"></div>
+
       </section>
 
     </main>
@@ -265,6 +312,47 @@
           <input type="text" id="incNotes" placeholder="Add a note..." />
         </div>
         <button type="submit" class="btn-primary">Save Income</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD STOCK MODAL -->
+  <div id="stockModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModal('stockModal')"></div>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 id="stockModalTitle">Add Holding</h3>
+        <button class="modal-close" onclick="closeModal('stockModal')">✕</button>
+      </div>
+      <form id="stockForm" class="modal-form">
+        <input type="hidden" id="stockEditId" />
+        <div class="form-group">
+          <label>Ticker Symbol</label>
+          <input type="text" id="stockTicker" placeholder="e.g. VUAA, LLY, AAPL" required
+            style="text-transform:uppercase" />
+          <span class="form-hint">Use the exact ticker from Yahoo Finance. For EU ETFs add exchange: VUAA.L or VUAA.AS</span>
+        </div>
+        <div class="form-group">
+          <label>Name (optional)</label>
+          <input type="text" id="stockName" placeholder="e.g. Vanguard S&P 500 ETF" />
+        </div>
+        <div class="form-group">
+          <label>Number of Shares</label>
+          <input type="number" id="stockShares" placeholder="0.00" step="0.0001" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Average Buy Price (€)</label>
+          <input type="number" id="stockBuyPrice" placeholder="0.00" step="0.0001" min="0" required />
+        </div>
+        <div class="form-group">
+          <label>Currency</label>
+          <select id="stockCurrency">
+            <option value="EUR">EUR €</option>
+            <option value="USD">USD $</option>
+            <option value="GBP">GBP £</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Save Holding</button>
       </form>
     </div>
   </div>
