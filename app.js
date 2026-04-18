@@ -124,6 +124,39 @@ function renderAll() {
   renderYearly();
 }
 
+/* ===== DAILY BUDGET CALC ===== */
+function getDailyBudget(balance) {
+  const today = new Date();
+  const isCurrentMonth = (
+    state.currentYear === today.getFullYear() &&
+    state.currentMonth === today.getMonth()
+  );
+
+  if (!isCurrentMonth) return null;
+
+  const todayDay = today.getDate();
+  const SALARY_DAY = 28;
+
+  let daysLeft;
+  let nextSalaryLabel;
+
+  if (todayDay < SALARY_DAY) {
+    // Before salary day this month
+    daysLeft = SALARY_DAY - todayDay;
+    nextSalaryLabel = `${daysLeft} day${daysLeft !== 1 ? 's' : ''} until salary (28th)`;
+  } else {
+    // On or after salary day — count to 28th of next month
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, SALARY_DAY);
+    const msPerDay = 1000 * 60 * 60 * 24;
+    daysLeft = Math.ceil((nextMonth - today) / msPerDay);
+    nextSalaryLabel = `${daysLeft} day${daysLeft !== 1 ? 's' : ''} until next salary`;
+  }
+
+  if (daysLeft <= 0) daysLeft = 1;
+  const daily = balance / daysLeft;
+  return { daily, daysLeft, nextSalaryLabel };
+}
+
 /* ===== DASHBOARD ===== */
 function renderDashboard() {
   const expenses = getMonthExpenses(state.currentYear, state.currentMonth);
@@ -141,6 +174,21 @@ function renderDashboard() {
 
   const balEl = document.getElementById('dash-balance');
   balEl.style.color = balance >= 0 ? 'var(--success)' : 'var(--danger)';
+
+  // Daily budget card
+  const dailyCard = document.getElementById('dash-daily-card');
+  const budgetInfo = getDailyBudget(balance);
+  if (budgetInfo) {
+    const { daily, nextSalaryLabel } = budgetInfo;
+    const color = daily >= 0 ? 'var(--success)' : 'var(--danger)';
+    document.getElementById('dash-daily').textContent = fmt(Math.abs(daily)) + '/day';
+    document.getElementById('dash-daily').style.color = color;
+    document.getElementById('dash-daily-sub').textContent =
+      daily < 0 ? `⚠️ Over budget · ${nextSalaryLabel}` : `✅ ${nextSalaryLabel}`;
+    dailyCard.style.display = '';
+  } else {
+    dailyCard.style.display = 'none';
+  }
 
   renderDonutChart(expenses);
   renderBarChart();

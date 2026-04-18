@@ -595,6 +595,40 @@ body {
 .month-row .col-balance.positive { color: var(--success); }
 .month-row .col-balance.negative { color: var(--danger); }
 
+/* ===== DAILY BUDGET CARD ===== */
+.daily-budget-card {
+  margin: 0 16px 16px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-md);
+}
+
+.daily-budget-left { display: flex; flex-direction: column; gap: 4px; }
+
+.daily-budget-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.daily-budget-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+}
+
+.daily-budget-value {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  color: #34d399;
+}
+
 /* ===== INSTALL BANNER ===== */
 .install-banner {
   position: fixed;
