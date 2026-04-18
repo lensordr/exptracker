@@ -891,27 +891,49 @@ function loadStocks() {
 /* Fetch price via Yahoo Finance through a CORS proxy */
 async function fetchPrice(ticker) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
-  const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-  try {
-    const res = await fetch(proxy, { signal: AbortSignal.timeout(8000) });
-    const json = await res.json();
-    const data = JSON.parse(json.contents);
-    const meta = data?.chart?.result?.[0]?.meta;
-    if (!meta) return null;
-    const price = meta.regularMarketPrice;
-    const prev  = meta.chartPreviousClose || meta.previousClose || price;
-    const change = price - prev;
-    const changePct = prev ? (change / prev) * 100 : 0;
-    return {
-      price,
-      change,
-      changePct,
-      currency: meta.currency || 'USD',
-      updatedAt: new Date().toISOString()
-    };
-  } catch(e) {
-    return null;
+  
+  // Try multiple proxies in order
+  const proxies = [
+    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  ];
+
+  for (const proxy of proxies) {
+    try {
+      const res = await fetch(proxy, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) continue;
+      
+      let data;
+      const text = await res.text();
+      
+      // allorigins wraps in {contents: "..."}
+      if (proxy.includes('allorigins')) {
+        const json = JSON.parse(text);
+        data = JSON.parse(json.contents);
+      } else {
+        // corsproxy returns raw
+        data = JSON.parse(text);
+      }
+
+      const meta = data?.chart?.result?.[0]?.meta;
+      if (!meta || !meta.regularMarketPrice) continue;
+
+      const price = meta.regularMarketPrice;
+      const prev  = meta.chartPreviousClose || meta.previousClose || price;
+      const change = price - prev;
+      const changePct = prev ? (change / prev) * 100 : 0;
+      return {
+        price,
+        change,
+        changePct,
+        currency: meta.currency || 'USD',
+        updatedAt: new Date().toISOString()
+      };
+    } catch(e) {
+      continue;
+    }
   }
+  return null;
 }
 
 async function refreshAllPrices(showSpinner = true) {
@@ -1184,7 +1206,7 @@ document.getElementById('stockForm').addEventListener('submit', async function(e
     const now = new Date();
     note.textContent = `Prices updated at ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · Delayed ~15 min`;
   } else {
-    if (note) note.textContent = `Could not fetch price for ${ticker}. Check the ticker symbol.`;
+    if (note) note.textContent = `⚠️ Could not fetch price for ${ticker} — proxy may be busy, tap 🔄 to retry.`;
   }
   renderStocks();
 });
