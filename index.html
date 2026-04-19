@@ -152,7 +152,19 @@
           <button class="month-btn" onclick="changeMonth(1)">›</button>
         </div>
 
-        <button class="fab" id="addIncomeBtn">+ Add Income</button>
+        <!-- Recurring salary banner -->
+        <div class="recurring-banner" id="recurringBanner" onclick="openRecurringModal()">
+          <div class="recurring-banner-left">
+            <span class="recurring-icon">🔁</span>
+            <div>
+              <div class="recurring-title">Recurring Salary</div>
+              <div class="recurring-sub" id="recurringBannerSub">Not set — tap to configure</div>
+            </div>
+          </div>
+          <span class="recurring-edit">⚙️</span>
+        </div>
+
+        <button class="fab" id="addIncomeBtn">+ Add Extra Income</button>
 
         <div class="income-summary-box">
           <div class="income-summary-row">
@@ -372,6 +384,34 @@
         </div>
         <button type="submit" class="btn-primary">Save Holding</button>
       </form>
+    </div>
+  </div>
+
+  <!-- RECURRING SALARY MODAL -->
+  <div id="recurringModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModal('recurringModal')"></div>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3>🔁 Recurring Salary</h3>
+        <button class="modal-close" onclick="closeModal('recurringModal')">✕</button>
+      </div>
+      <div class="modal-form">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:4px">Set your salary once — it auto-appears every month so you never have to re-enter it.</p>
+        <div class="form-group">
+          <label>Monthly Salary (€)</label>
+          <input type="number" id="recSalary" placeholder="e.g. 3000" step="0.01" min="0" />
+        </div>
+        <div class="form-group">
+          <label>Paid on day of month</label>
+          <input type="number" id="recSalaryDay" value="28" min="1" max="31" />
+        </div>
+        <div class="form-group">
+          <label>Fixed Extra Income / month (€) <span style="font-weight:400;font-size:11px">(optional)</span></label>
+          <input type="number" id="recExtra" placeholder="0" step="0.01" min="0" />
+        </div>
+        <button class="btn-primary" onclick="saveRecurringModal()">Save</button>
+        <button onclick="clearRecurring()" style="margin-top:8px;padding:10px;background:none;border:1px solid var(--border);border-radius:8px;width:100%;font-size:14px;color:var(--text-muted);cursor:pointer">Clear recurring salary</button>
+      </div>
     </div>
   </div>
 

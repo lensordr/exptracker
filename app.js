@@ -34,6 +34,52 @@ function loadData() {
   }
 }
 
+/* ===== RECURRING SALARY ===== */
+let recurringConfig = {
+  salary: 0,
+  salaryDay: 28,
+  extraMonthly: 0  // optional fixed extra income per month
+};
+
+function saveRecurring() {
+  localStorage.setItem('et_recurring', JSON.stringify(recurringConfig));
+}
+
+function loadRecurring() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('et_recurring') || 'null');
+    if (saved) recurringConfig = { ...recurringConfig, ...saved };
+  } catch(e) {}
+}
+
+// Returns virtual income entries for a month based on recurring config
+function getRecurringIncome(year, month) {
+  const entries = [];
+  if (recurringConfig.salary > 0) {
+    entries.push({
+      id: `recurring-salary-${year}-${month}`,
+      type: 'Salary',
+      source: 'Monthly Salary (auto)',
+      amount: recurringConfig.salary,
+      date: `${year}-${String(month + 1).padStart(2,'0')}-${String(recurringConfig.salaryDay).padStart(2,'0')}`,
+      notes: '',
+      recurring: true
+    });
+  }
+  if (recurringConfig.extraMonthly > 0) {
+    entries.push({
+      id: `recurring-extra-${year}-${month}`,
+      type: 'Extra Income',
+      source: 'Monthly Extra (auto)',
+      amount: recurringConfig.extraMonthly,
+      date: `${year}-${String(month + 1).padStart(2,'0')}-01`,
+      notes: '',
+      recurring: true
+    });
+  }
+  return entries;
+}
+
 /* ===== HELPERS ===== */
 function fmt(n) {
   return '€' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -47,10 +93,17 @@ function getMonthExpenses(year, month) {
 }
 
 function getMonthIncome(year, month) {
-  return state.income.filter(i => {
+  const manual = state.income.filter(i => {
     const d = new Date(i.date);
     return d.getFullYear() === year && d.getMonth() === month;
   });
+  // Merge recurring — but skip if user already manually added a salary this month
+  const hasManuaSalary = manual.some(i => i.type === 'Salary' && !i.recurring);
+  const recurring = getRecurringIncome(year, month).filter(r => {
+    if (r.type === 'Salary' && hasManuaSalary) return false;
+    return true;
+  });
+  return [...manual, ...recurring];
 }
 
 function sumAmount(arr) {
@@ -200,7 +253,7 @@ function getDailyBudget(balance) {
   if (!isCurrentMonth) return null;
 
   const todayDay = today.getDate();
-  const SALARY_DAY = 28;
+  const SALARY_DAY = recurringConfig.salaryDay || 28;
 
   let daysLeft;
   let nextSalaryLabel;
@@ -814,6 +867,44 @@ document.getElementById('incomeForm').addEventListener('submit', function(ev) {
   renderAll();
 });
 
+/* ===== RECURRING MODAL ===== */
+function openRecurringModal() {
+  document.getElementById('recSalary').value = recurringConfig.salary || '';
+  document.getElementById('recSalaryDay').value = recurringConfig.salaryDay || 28;
+  document.getElementById('recExtra').value = recurringConfig.extraMonthly || '';
+  openModal('recurringModal');
+}
+
+function saveRecurringModal() {
+  recurringConfig.salary = parseFloat(document.getElementById('recSalary').value) || 0;
+  recurringConfig.salaryDay = parseInt(document.getElementById('recSalaryDay').value) || 28;
+  recurringConfig.extraMonthly = parseFloat(document.getElementById('recExtra').value) || 0;
+  saveRecurring();
+  closeModal('recurringModal');
+  updateRecurringBanner();
+  renderAll();
+}
+
+function clearRecurring() {
+  if (!confirm('Remove recurring salary?')) return;
+  recurringConfig = { salary: 0, salaryDay: 28, extraMonthly: 0 };
+  saveRecurring();
+  closeModal('recurringModal');
+  updateRecurringBanner();
+  renderAll();
+}
+
+function updateRecurringBanner() {
+  const sub = document.getElementById('recurringBannerSub');
+  if (!sub) return;
+  if (recurringConfig.salary > 0) {
+    sub.textContent = `${fmt(recurringConfig.salary)} on the ${recurringConfig.salaryDay}th each month` +
+      (recurringConfig.extraMonthly > 0 ? ` + ${fmt(recurringConfig.extraMonthly)} extra` : '');
+  } else {
+    sub.textContent = 'Not set — tap to configure';
+  }
+}
+
 /* ===== TAB NAVIGATION ===== */
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1216,8 +1307,10 @@ document.getElementById('refreshPricesBtn').addEventListener('click', () => refr
 
 /* ===== INIT ===== */
 loadData();
+loadRecurring();
 loadStocks();
 updateYearSelect();
+updateRecurringBanner();
 renderAll();
 renderStocks();
 
