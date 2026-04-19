@@ -222,7 +222,7 @@ function renderDayFilter() {
     strip.appendChild(btn);
   }
 
-  // Scroll to today or selected day
+  // Scroll to today but do NOT auto-select it
   const scrollTo = state.selectedDay || (isCurrentMonth ? today.getDate() : 1);
   const targetBtn = strip.children[scrollTo - 1];
   if (targetBtn) {
