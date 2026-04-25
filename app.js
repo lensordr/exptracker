@@ -86,10 +86,12 @@ function fmt(n) {
 }
 
 function getMonthExpenses(year, month) {
-  return state.expenses.filter(e => {
+  const manual = state.expenses.filter(e => {
     const d = new Date(e.date);
     return d.getFullYear() === year && d.getMonth() === month;
   });
+  const fixed = getFixedExpensesForMonth(year, month);
+  return [...manual, ...fixed];
 }
 
 function getMonthIncome(year, month) {
@@ -108,6 +110,13 @@ function getMonthIncome(year, month) {
 
 function sumAmount(arr) {
   return arr.reduce((s, i) => s + Number(i.amount), 0);
+}
+
+function toLocalDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 function uid() {
@@ -347,7 +356,7 @@ function renderDashboard() {
 
   if (isCurrentMonth && budgetInfo && !filtered) {
     const { daily } = budgetInfo;
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = toLocalDateStr(today);
     const spentToday = allExpenses
       .filter(e => e.date === todayStr)
       .reduce((s, e) => s + Number(e.amount), 0);
@@ -764,7 +773,7 @@ function openAddExpense() {
   const today = new Date();
   const y = state.currentYear, mo = state.currentMonth;
   const d = new Date(y, mo, today.getDate() <= new Date(y, mo+1, 0).getDate() ? today.getDate() : 1);
-  document.getElementById('expDate').value = d.toISOString().split('T')[0];
+  document.getElementById('expDate').value = toLocalDateStr(d);
   openModal('expenseModal');
 }
 
@@ -821,7 +830,7 @@ function openAddIncome() {
   const today = new Date();
   const y = state.currentYear, mo = state.currentMonth;
   const d = new Date(y, mo, today.getDate() <= new Date(y, mo+1, 0).getDate() ? today.getDate() : 1);
-  document.getElementById('incDate').value = d.toISOString().split('T')[0];
+  document.getElementById('incDate').value = toLocalDateStr(d);
   openModal('incomeModal');
 }
 
@@ -905,7 +914,106 @@ function updateRecurringBanner() {
   }
 }
 
-/* ===== TAB NAVIGATION ===== */
+/* ===== FIXED EXPENSES ===== */
+const DEFAULT_FIXED_EXPENSES = [
+  { id: 'fx-rent',     name: 'Rent',           amount: 310, category: 'Rent',       subcategory: 'Monthly Rent', day: 1  },
+  { id: 'fx-box',      name: 'Box',            amount: 65,  category: 'Apartment',  subcategory: 'Other',        day: 1  },
+  { id: 'fx-cetelem',  name: 'Cetelem',        amount: 44,  category: 'Loans',      subcategory: 'Personal Loan',day: 1  },
+  { id: 'fx-parking',  name: 'Parking',        amount: 50,  category: 'Apartment',  subcategory: 'Other',        day: 1  },
+  { id: 'fx-moto',     name: 'Moto Debt',      amount: 202, category: 'Loans',      subcategory: 'Personal Loan',day: 1  },
+  { id: 'fx-spotify',  name: 'Spotify',        amount: 11,  category: 'Going Out',  subcategory: 'Hobbies',      day: 1  },
+  { id: 'fx-apple',    name: 'Apple Care+',    amount: 15,  category: 'Apartment',  subcategory: 'Other',        day: 1  },
+  { id: 'fx-internet', name: 'Internet',       amount: 7,   category: 'Rent',       subcategory: 'Internet',     day: 1  },
+  { id: 'fx-vodafone', name: 'Vodafone',       amount: 10,  category: 'Apartment',  subcategory: 'Other',        day: 1  },
+];
+
+let fixedExpenses = [];
+
+function saveFixedExpenses() {
+  localStorage.setItem('et_fixed', JSON.stringify(fixedExpenses));
+}
+
+function loadFixedExpenses() {
+  try {
+    const saved = localStorage.getItem('et_fixed');
+    fixedExpenses = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULT_FIXED_EXPENSES));
+    if (!saved) saveFixedExpenses(); // save defaults on first load
+  } catch(e) {
+    fixedExpenses = JSON.parse(JSON.stringify(DEFAULT_FIXED_EXPENSES));
+  }
+}
+
+// Returns virtual expense entries for a month from fixed expenses
+function getFixedExpensesForMonth(year, month) {
+  return fixedExpenses
+    .filter(f => f.enabled !== false)
+    .map(f => ({
+      id: `fixed-${f.id}-${year}-${month}`,
+      category: f.category,
+      subcategory: f.subcategory,
+      amount: f.amount,
+      date: `${year}-${String(month + 1).padStart(2,'0')}-${String(f.day).padStart(2,'0')}`,
+      notes: f.name + ' (fixed)',
+      fixed: true
+    }));
+}
+
+function renderFixedExpensesList() {
+  const container = document.getElementById('fixed-expenses-list');
+  if (!container) return;
+  const total = fixedExpenses.filter(f => f.enabled !== false).reduce((s, f) => s + f.amount, 0);
+  document.getElementById('fixed-total').textContent = fmt(total);
+
+  container.innerHTML = fixedExpenses.map(f => `
+    <div class="fixed-item ${f.enabled === false ? 'disabled' : ''}">
+      <div class="fixed-item-left">
+        <label class="fixed-toggle">
+          <input type="checkbox" ${f.enabled !== false ? 'checked' : ''} onchange="toggleFixed('${f.id}', this.checked)" />
+          <span class="fixed-toggle-slider"></span>
+        </label>
+        <div>
+          <div class="fixed-name">${f.name}</div>
+          <div class="fixed-cat">${f.category} · day ${f.day}</div>
+        </div>
+      </div>
+      <div class="fixed-item-right">
+        <span class="fixed-amount">${fmt(f.amount)}</span>
+        <button class="btn-edit" onclick="editFixed('${f.id}')">✏️</button>
+      </div>
+    </div>`).join('');
+}
+
+function toggleFixed(id, enabled) {
+  const f = fixedExpenses.find(x => x.id === id);
+  if (f) { f.enabled = enabled; saveFixedExpenses(); renderAll(); }
+}
+
+function editFixed(id) {
+  const f = fixedExpenses.find(x => x.id === id);
+  if (!f) return;
+  document.getElementById('fixedEditId').value = id;
+  document.getElementById('fixedName').value = f.name;
+  document.getElementById('fixedAmount').value = f.amount;
+  document.getElementById('fixedDay').value = f.day;
+  document.getElementById('fixedCategory').value = f.category;
+  openModal('fixedModal');
+}
+
+document.getElementById('fixedForm').addEventListener('submit', function(ev) {
+  ev.preventDefault();
+  const id = document.getElementById('fixedEditId').value;
+  const f = fixedExpenses.find(x => x.id === id);
+  if (f) {
+    f.name = document.getElementById('fixedName').value.trim();
+    f.amount = parseFloat(document.getElementById('fixedAmount').value);
+    f.day = parseInt(document.getElementById('fixedDay').value);
+    f.category = document.getElementById('fixedCategory').value;
+    saveFixedExpenses();
+    closeModal('fixedModal');
+    renderFixedExpensesList();
+    renderAll();
+  }
+});
 document.querySelectorAll('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -914,6 +1022,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'yearly') renderYearly();
     if (btn.dataset.tab === 'dashboard') renderDashboard();
+    if (btn.dataset.tab === 'fixed') renderFixedExpensesList();
     if (btn.dataset.tab === 'stocks') {
       renderStocks();
       // Auto-refresh if no prices or last fetch was >10 min ago
@@ -1308,11 +1417,13 @@ document.getElementById('refreshPricesBtn').addEventListener('click', () => refr
 /* ===== INIT ===== */
 loadData();
 loadRecurring();
+loadFixedExpenses();
 loadStocks();
 updateYearSelect();
 updateRecurringBanner();
 renderAll();
 renderStocks();
+renderFixedExpensesList();
 
 // Register service worker
 if ('serviceWorker' in navigator) {
